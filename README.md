@@ -1,6 +1,6 @@
 # CTkSyntaxHighlightedTextbox
 
-CTkHighlightedTextbox is a customtkinter textbox with built in syntax highlighting.<br>
+CTkSyntaxHighlightedTextbox is a customtkinter textbox with built in syntax highlighting.<br>
 The syntax highlighting is fully customizable a works using regexes.
 
 i made this because i needed it for another project and i decided to publish it
