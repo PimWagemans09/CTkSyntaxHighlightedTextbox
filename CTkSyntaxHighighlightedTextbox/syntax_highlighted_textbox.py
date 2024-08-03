@@ -55,11 +55,14 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
         self._tagpatterns = {}
         self._clearModifiedFlag()
         self.bind("<<Modified>>", self._beenModified)
+        self.bind("<Key>", lambda event: self.highlight())
         if isinstance(tags, dict):
             self._load_tags_dict(tags)
         elif isinstance(tags, pathlib.Path):
             self._load_tags_dict_from_file()
         self.callback_queue = queue.Queue()
+
+        self.highlight()
 
     def replace_tags_dict(
         self,
@@ -73,6 +76,7 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             self._load_tags_dict(tags)
         elif isinstance(tags, pathlib.Path):
             self._load_tags_dict_from_file()
+        self.highlight()
 
     def highlight(self):
         try:
@@ -83,7 +87,7 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             "highlighter", self, self.callback_queue
         )
         self._highlightingengine.start()
-        self._check_on_HighlightingEngine()
+        self._DONT_CALL_check_on_HighlightingEngine()
 
     def _apply_highlighting(self, indexes: list[tuple[str, int, int]]) -> None:
         self.winfo_toplevel().update_idletasks()
@@ -96,16 +100,14 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
                 index2=f"1.0+{endindex}c",
             )
 
-    def _check_on_HighlightingEngine(self):
-        if not self._highlightingengine.is_alive():
-            return
+    def _DONT_CALL_check_on_HighlightingEngine(self):
         try:
             indexes = self.callback_queue.get(False)
             self._apply_highlighting(indexes)
             return
         except queue.Empty:  # raised when queue is empty
             pass
-        self.after(1, self._check_on_HighlightingEngine)
+        self.after(1, self._DONT_CALL_check_on_HighlightingEngine)
 
     def _beenModified(self, event=None):
         if self._resetting_modified_flag:
@@ -135,8 +137,8 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
 
     def _load_tags(self):
         for tag in self.tags_dict["tags"]:
-            if "foreground" in tag:
-                self.tag_config(tagName=tag["name"], foreground=tag["foreground"])
+            if "text_color" in tag:
+                self.tag_config(tagName=tag["name"], foreground=tag["text_color"])
             if "background" in tag:
                 self.tag_config(tagName=tag["name"], background=tag["background"])
             self._tagnames.append(tag["name"])
