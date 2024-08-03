@@ -51,6 +51,7 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             activate_scrollbars,
             **kwargs,
         )
+        self._highlighting = False
         self._tagnames = []
         self._tagpatterns = {}
         self._clearModifiedFlag()
@@ -83,9 +84,11 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             self._highlightingengine.stop()
         except AttributeError:
             pass
+        self._highlighting = True
         self._highlightingengine = HighlightingEngine(
             "highlighter", self, self.callback_queue
         )
+
         self._highlightingengine.start()
         self._DONT_CALL_check_on_HighlightingEngine()
 
@@ -100,12 +103,17 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
                 index2=f"1.0+{endindex}c",
             )
 
-    def _DONT_CALL_check_on_HighlightingEngine(self):
+    def _DONT_CALL_check_on_HighlightingEngine(
+        self,
+    ):  # dont call outside of self.highlight()
+        if not self._highlighting:
+            return
         try:
             indexes = self.callback_queue.get(False)
             self._apply_highlighting(indexes)
+            self._highlighting = True
             return
-        except queue.Empty:  # raised when queue is empty
+        except queue.Empty:
             pass
         self.after(1, self._DONT_CALL_check_on_HighlightingEngine)
 
