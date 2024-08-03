@@ -29,9 +29,8 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
         """
         A syntax highlighted textbox for customtkinter
         supports all functions and arguments from customtkinter.Textbox
-        plus the argument tags
-        tags can be a tags dict
-        or a path to a json file containing a tags dict
+        plus the argument "tags"\n
+        "tags" can be a tags dict or a path to a json file containing a tags dict
         more info about what a tags dict is can be found in the README
         https://github.com/PimWagemans09/CTkSyntaxHighlightedTextbox/blob/main/README.md
         """
@@ -52,9 +51,9 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             activate_scrollbars,
             **kwargs,
         )
-        self.tagnames = []
-        self.tagpatterns = {}
-        self.clearModifiedFlag()
+        self._tagnames = []
+        self._tagpatterns = {}
+        self._clearModifiedFlag()
         self.bind("<<Modified>>", self._beenModified)
         if isinstance(tags, dict):
             self._load_tags_dict(tags)
@@ -62,13 +61,28 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             self._load_tags_dict_from_file()
         self.callback_queue = queue.Queue()
 
+    def replace_tags_dict(
+        self,
+        tags: dict | pathlib.Path,
+    ):
+        for tag in self._tagnames:
+            self.tag_delete(tag)
+        self._tagnames = []
+        self._tagpatterns = {}
+        if isinstance(tags, dict):
+            self._load_tags_dict(tags)
+        elif isinstance(tags, pathlib.Path):
+            self._load_tags_dict_from_file()
+
     def highlight(self):
         try:
-            self.highlighter.stop()
+            self._highlightingengine.stop()
         except AttributeError:
             pass
-        self.highlighter = HighlightingEngine("highlighter", self, self.callback_queue)
-        self.highlighter.start()
+        self._highlightingengine = HighlightingEngine(
+            "highlighter", self, self.callback_queue
+        )
+        self._highlightingengine.start()
         self._check_on_HighlightingEngine()
 
     def _apply_highlighting(self, indexes: list[tuple[str, int, int]]) -> None:
@@ -83,6 +97,8 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             )
 
     def _check_on_HighlightingEngine(self):
+        if not self._highlightingengine.is_alive():
+            return
         try:
             indexes = self.callback_queue.get(False)
             self._apply_highlighting(indexes)
@@ -91,19 +107,15 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
             pass
         self.after(1, self._check_on_HighlightingEngine)
 
-    def update_line_numbers(self) -> None:
-        self.after_idle(self.linenums.redraw)
-        self.after(10, self.update_line_numbers)
-
     def _beenModified(self, event=None):
         if self._resetting_modified_flag:
             return
 
-        self.clearModifiedFlag()
+        self._clearModifiedFlag()
 
         self.highlight()
 
-    def clearModifiedFlag(self):
+    def _clearModifiedFlag(self):
         self._resetting_modified_flag = True
 
         try:
@@ -123,8 +135,9 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
 
     def _load_tags(self):
         for tag in self.tags_dict["tags"]:
-            if not "foreground" in tag:
-                tag["foreground"] = "#ffffff"
-            self.tag_config(tagName=tag["name"], foreground=tag["foreground"])
-            self.tagnames.append(tag["name"])
-            self.tagpatterns[tag["name"]] = tag["patterns"]
+            if "foreground" in tag:
+                self.tag_config(tagName=tag["name"], foreground=tag["foreground"])
+            if "background" in tag:
+                self.tag_config(tagName=tag["name"], background=tag["background"])
+            self._tagnames.append(tag["name"])
+            self._tagpatterns[tag["name"]] = tag["patterns"]

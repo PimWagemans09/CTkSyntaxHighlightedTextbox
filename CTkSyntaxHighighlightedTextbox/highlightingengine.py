@@ -25,8 +25,8 @@ class HighlightingEngine(threading.Thread):
         indexes: list[Tuple[str, int, int]] = []
         text_to_search = self.master.get("1.0", ctk.END)
         try:
-            for tagname in self.master.tagnames:
-                for pattern in self.master.tagpatterns[tagname]:
+            for tagname in self.master._tagnames:
+                for pattern in self.master._tagpatterns[tagname]:
                     match: re.Match
                     for match in re.finditer(
                         pattern=pattern, string=text_to_search, flags=re.MULTILINE
