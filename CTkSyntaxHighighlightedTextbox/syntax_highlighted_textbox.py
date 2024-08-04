@@ -4,6 +4,7 @@ import pathlib
 import queue
 from .highlightingengine import HighlightingEngine
 import json
+import re
 
 
 class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
@@ -53,7 +54,7 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
         )
         self._highlighting = False
         self._tagnames = []
-        self._tagpatterns = {}
+        self._tagpatterns: dict[str, list[re.Pattern]] = {}
         self._clearModifiedFlag()
         self.bind("<<Modified>>", self._beenModified)
         self.bind("<Key>", lambda event: self.highlight())
@@ -94,7 +95,7 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
 
     def _apply_highlighting(self, indexes: list[tuple[str, int, int]]) -> None:
         self.winfo_toplevel().update_idletasks()
-        for tagname in self.tags_dict.keys():
+        for tagname in self._tags_dict.keys():
             self.tag_remove(tagName=tagname, index1="0.0", index2=ctk.END)
         for tagname, startindex, endindex in indexes:
             self.tag_add(
@@ -136,18 +137,23 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
 
     def _load_tags_dict_from_file(self, path: pathlib.Path) -> None:
         with path.open(mode="r") as file:
-            self.tags_dict = json.load(file)
+            self._tags_dict = json.load(file)
         self._load_tags()
 
     def _load_tags_dict(self, tags_dict: dict):
-        self.tags_dict = tags_dict
+        self._tags_dict = tags_dict
         self._load_tags()
 
     def _load_tags(self):
-        for tag in self.tags_dict["tags"]:
+        re.purge()
+        for tag in self._tags_dict["tags"]:
             if "text_color" in tag:
                 self.tag_config(tagName=tag["name"], foreground=tag["text_color"])
             if "background" in tag:
                 self.tag_config(tagName=tag["name"], background=tag["background"])
             self._tagnames.append(tag["name"])
-            self._tagpatterns[tag["name"]] = tag["patterns"]
+            compiled_patterns = []
+            for pattern in tag["patterns"]:
+                compiled_pattern = re.compile(pattern=pattern, flags=re.MULTILINE)
+                compiled_patterns.append(compiled_pattern)
+            self._tagpatterns[tag["name"]] = compiled_patterns

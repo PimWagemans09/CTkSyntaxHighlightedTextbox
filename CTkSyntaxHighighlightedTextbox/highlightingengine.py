@@ -26,12 +26,17 @@ class HighlightingEngine(threading.Thread):
         text_to_search = self.master.get("1.0", ctk.END)
         try:
             for tagname in self.master._tagnames:
+                pattern: re.Pattern
                 for pattern in self.master._tagpatterns[tagname]:
                     match: re.Match
-                    for match in re.finditer(
-                        pattern=pattern, string=text_to_search, flags=re.MULTILINE
-                    ):
-                        indexes.append((tagname, match.start(), match.end()))
+                    for match in pattern.finditer(string=text_to_search):
+                        if len(match.groups()) > 0:
+                            for i in range(1, len(match.groups()) + 1):
+                                if match.start(i) < 0:
+                                    continue
+                                indexes.append((tagname, match.start(i), match.end(i)))
+                        else:
+                            indexes.append((tagname, match.start(), match.end()))
 
             self.callback_queue.put(item=indexes)
         finally:
