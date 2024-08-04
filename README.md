@@ -30,7 +30,7 @@ a tag has 4 elements:
 - "name" unique identifier of the tag
 - "text_color" (optional) the color of the tagged text
 - "background" (optional) the color of the background of the tagged text
-- "patterns" a list of regex patterns. All text that matches one of these patterns wil be tagged
+- "patterns" a list of regex patterns. All text that matches one of these patterns wil be tagged. If the pattern contains a capturing group only text in a capturing group will be tagged
 
 ### methods
 
