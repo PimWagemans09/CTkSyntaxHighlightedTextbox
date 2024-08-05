@@ -95,7 +95,7 @@ class CTkSyntaxHighlightedTextbox(ctk.CTkTextbox):
 
     def _apply_highlighting(self, indexes: list[tuple[str, int, int]]) -> None:
         self.winfo_toplevel().update_idletasks()
-        for tagname in self._tags_dict.keys():
+        for tagname in self._tagnames:
             self.tag_remove(tagName=tagname, index1="0.0", index2=ctk.END)
         for tagname, startindex, endindex in indexes:
             self.tag_add(
